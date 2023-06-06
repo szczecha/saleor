@@ -9,8 +9,9 @@ from django.db import transaction
 from graphql.error import GraphQLError
 
 from .....channel import models as channel_models
-from .....discount import models
+from .....discount import events, models
 from .....permission.enums import DiscountPermissions
+from ....app.dataloaders import get_app_promise
 from .....plugins.manager import PluginsManager
 from ....channel.types import Channel
 from ....core import ResolveInfo
@@ -184,7 +185,8 @@ class PromotionCreate(ModelMutation):
         cls.clean_instance(info, instance)
         with transaction.atomic():
             cls.save(info, instance, cleaned_input)
-            cls._save_m2m(info, instance, cleaned_input)
+            rules = cls._save_m2m(info, instance, cleaned_input)
+            cls.save_events(info, instance, rules)
             cls.send_promotion_webhooks(manager, instance)
         return cls.success_response(instance)
 
@@ -194,8 +196,8 @@ class PromotionCreate(ModelMutation):
     ):
         super()._save_m2m(info, instance, cleaned_data)
         rules_with_channels_to_add = []
+        rules = []
         if rules_data := cleaned_data.get("rules"):
-            rules = []
             for rule_data in rules_data:
                 channels = rule_data.pop("channels", None)
                 rule = models.PromotionRule(promotion=instance, **rule_data)
@@ -206,7 +208,8 @@ class PromotionCreate(ModelMutation):
         for rule, channels in rules_with_channels_to_add:
             rule.channels.set(channels)
 
-    @classmethod
+        return rules
+
     def send_promotion_webhooks(
         cls, manager: "PluginsManager", instance: models.Promotion
     ):
@@ -231,3 +234,14 @@ class PromotionCreate(ModelMutation):
             cls.call_event(manager.promotion_toggle, instance)
             instance.last_notification_scheduled_at = now
             instance.save(update_fields=["last_notification_scheduled_at"])
+
+    @classmethod
+    def save_events(
+        cls,
+        info: ResolveInfo,
+        instance: models.Promotion,
+        rules: List[models.PromotionRule],
+    ):
+        app = get_app_promise(info.context).get()
+        events.promotion_created_event(instance, info.context.user, app)
+        events.rule_created_event(instance, info.context.user, app, rules)

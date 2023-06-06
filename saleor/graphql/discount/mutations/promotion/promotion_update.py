@@ -5,8 +5,9 @@ import pytz
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
-from .....discount import models
+from .....discount import events, models
 from .....permission.enums import DiscountPermissions
+from ....app.dataloaders import get_app_promise
 from .....plugins.manager import PluginsManager
 from ....core import ResolveInfo
 from ....core.descriptions import ADDED_IN_315, PREVIEW_FEATURE
@@ -55,6 +56,7 @@ class PromotionUpdate(ModelMutation):
             cls.clean_instance(info, instance)
             cls.save(info, instance, cleaned_input)
             cls._save_m2m(info, instance, cleaned_input)
+            cls.save_events(info, instance)
             cls.send_promotion_webhooks(
                 manager, instance, cleaned_input, previous_end_date
             )
@@ -73,6 +75,11 @@ class PromotionUpdate(ModelMutation):
             error.code = PromotionUpdateErrorCode.INVALID.value
             raise ValidationError({"endDate": error})
         return cleaned_input
+
+    @classmethod
+    def save_events(cls, info, instance):
+        app = get_app_promise(info.context).get()
+        events.promotion_updated_event(instance, info.context.user, app)
 
     @classmethod
     def send_promotion_webhooks(

@@ -4,8 +4,9 @@ from typing import DefaultDict, List
 import graphene
 from django.core.exceptions import ValidationError
 
-from .....discount import models
+from .....discount import events, models
 from .....permission.enums import DiscountPermissions
+from ....app.dataloaders import get_app_promise
 from ....core import ResolveInfo
 from ....core.descriptions import ADDED_IN_315, PREVIEW_FEATURE
 from ....core.doc_category import DOC_CATEGORY_DISCOUNTS
@@ -83,3 +84,10 @@ class PromotionRuleCreate(ModelMutation):
         if errors:
             raise ValidationError(errors)
         return cleaned_input
+
+    @classmethod
+    def post_save_action(cls, info, instance, cleaned_input):
+        app = get_app_promise(info.context).get()
+        events.rule_created_event(
+            instance.promotion, info.context.user, app, [instance]
+        )

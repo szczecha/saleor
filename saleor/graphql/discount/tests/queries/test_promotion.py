@@ -156,3 +156,44 @@ def test_query_promotion_with_complex_rule_2(
     # then
     content = get_graphql_content(response)
     _assert_promotion_data(promotion, content)
+
+
+QUERY_PROMOTION_BY_ID_WITH_EVENTS = """
+    query Promotion($id: ID!) {
+        promotion(id: $id) {
+            id
+            events {
+                type
+                user {
+                    id
+                }
+            }
+        }
+    }
+"""
+
+
+def test_query_promotion_events(
+    promotion_events, staff_api_client, permission_group_manage_discounts
+):
+    # given
+    promotion = promotion_events[0].promotion
+    promotion_id = graphene.Node.to_global_id("Promotion", promotion.id)
+    permission_group_manage_discounts.user_set.add(staff_api_client.user)
+    variables = {"id": promotion_id}
+
+    # when
+    response = staff_api_client.post_graphql(
+        QUERY_PROMOTION_BY_ID_WITH_EVENTS, variables
+    )
+
+    # then
+    content = get_graphql_content(response)
+    events = content["data"]["promotion"]["events"]
+    assert len(events) == promotion.events.count()
+    for event in promotion.events.all():
+        event_data = {
+            "type": event.type.upper(),
+            "user": {"id": graphene.Node.to_global_id("User", event.user.id)},
+        }
+        assert event_data in events
