@@ -7,8 +7,8 @@ from django.db import transaction
 
 from .....discount import events, models
 from .....permission.enums import DiscountPermissions
-from ....app.dataloaders import get_app_promise
 from .....plugins.manager import PluginsManager
+from ....app.dataloaders import get_app_promise
 from ....core import ResolveInfo
 from ....core.descriptions import ADDED_IN_315, PREVIEW_FEATURE
 from ....core.doc_category import DOC_CATEGORY_DISCOUNTS
