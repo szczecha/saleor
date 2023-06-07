@@ -86,3 +86,18 @@ def rule_updated_event(
         rules=rules,
         type=PromotionEvents.RULE_UPDATED,
     )
+
+
+def rule_deleted_event(
+    promotion: Promotion,
+    user: Optional[User],
+    app: Optional[App],
+    rules: List[PromotionRule],
+):
+    return _rule_base_event(
+        promotion=promotion,
+        user=user,
+        app=app,
+        rules=rules,
+        type=PromotionEvents.RULE_DELETED,
+    )

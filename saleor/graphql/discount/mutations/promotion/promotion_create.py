@@ -11,8 +11,8 @@ from graphql.error import GraphQLError
 from .....channel import models as channel_models
 from .....discount import events, models
 from .....permission.enums import DiscountPermissions
-from ....app.dataloaders import get_app_promise
 from .....plugins.manager import PluginsManager
+from ....app.dataloaders import get_app_promise
 from ....channel.types import Channel
 from ....core import ResolveInfo
 from ....core.descriptions import ADDED_IN_315, PREVIEW_FEATURE
@@ -210,6 +210,7 @@ class PromotionCreate(ModelMutation):
 
         return rules
 
+    @classmethod
     def send_promotion_webhooks(
         cls, manager: "PluginsManager", instance: models.Promotion
     ):
@@ -244,4 +245,5 @@ class PromotionCreate(ModelMutation):
     ):
         app = get_app_promise(info.context).get()
         events.promotion_created_event(instance, info.context.user, app)
-        events.rule_created_event(instance, info.context.user, app, rules)
+        if rules:
+            events.rule_created_event(instance, info.context.user, app, rules)
