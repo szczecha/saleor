@@ -246,4 +246,4 @@ class PromotionCreate(ModelMutation):
         app = get_app_promise(info.context).get()
         events.promotion_created_event(instance, info.context.user, app)
         if rules:
-            events.rule_created_event(instance, info.context.user, app, rules)
+            events.rule_created_event(info.context.user, app, rules)

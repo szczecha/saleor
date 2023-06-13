@@ -12984,29 +12984,26 @@ type PromotionEvent implements Node @doc(category: "Discounts") {
   """Promotion event type."""
   type: PromotionEventsEnum
 
-  """User who performed the action."""
-  user: User
+  """
+  User or App that created the promotion event. 
+  
+  Requires one of the following permissions: MANAGE_STAFF, MANAGE_APPS.
+  """
+  createdBy: UserOrApp
 
-  """App that performed the action."""
-  app: App
-
-  """Content of the event."""
-  message: String
-
-  """ID of the rule."""
-  ruleId: ID
+  """The rule ID associated with the promotion event."""
+  ruleId: String
 }
 
 """An enumeration."""
 enum PromotionEventsEnum @doc(category: "Discounts") {
   PROMOTION_CREATED
   PROMOTION_UPDATED
-  PROMOTION_DELETED
   RULE_CREATED
   RULE_UPDATED
   RULE_DELETED
-  START
-  END
+  PROMOTION_START
+  PROMOTION_ENDED
 }
 
 """Represents a job data of exported file."""

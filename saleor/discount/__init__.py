@@ -47,24 +47,22 @@ class RewardValueType:
 class PromotionEvents:
     PROMOTION_CREATED = "promotion_created"
     PROMOTION_UPDATED = "promotion_updated"
-    PROMOTION_DELETED = "promotion_deleted"
 
     RULE_CREATED = "rule_created"
     RULE_UPDATED = "rule_updated"
     RULE_DELETED = "rule_deleted"
 
-    START = "start"
-    END = "end"
+    PROMOTION_STARTED = "promotion_start"
+    PROMOTION_ENDED = "promotion_ended"
 
     CHOICES = [
         (PROMOTION_CREATED, "Promotion created"),
         (PROMOTION_UPDATED, "Promotion updated"),
-        (PROMOTION_DELETED, "Promotion deleted"),
         (RULE_CREATED, "Rule created"),
         (RULE_UPDATED, "Rule updated"),
         (RULE_DELETED, "Rule deleted"),
-        (START, "Start"),
-        (END, "End"),
+        (PROMOTION_STARTED, "Promotion started"),
+        (PROMOTION_ENDED, "Promotion ended"),
     ]
 
 

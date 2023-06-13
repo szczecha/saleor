@@ -88,6 +88,4 @@ class PromotionRuleUpdate(ModelMutation):
     @classmethod
     def post_save_action(cls, info, instance, cleaned_input):
         app = get_app_promise(info.context).get()
-        events.rule_updated_event(
-            instance.promotion, info.context.user, app, [instance]
-        )
+        events.rule_updated_event(info.context.user, app, [instance])

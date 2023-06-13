@@ -36,7 +36,6 @@ def promotion_updated_event(
 
 
 def _rule_base_event(
-    promotion: Promotion,
     user: Optional[User],
     app: Optional[App],
     rules: List[PromotionRule],
@@ -46,7 +45,7 @@ def _rule_base_event(
     for rule in rules:
         events.append(
             PromotionEvent(
-                promotion=promotion,
+                promotion=rule.promotion,
                 type=type,
                 user=user,
                 app=app,
@@ -59,13 +58,11 @@ def _rule_base_event(
 
 
 def rule_created_event(
-    promotion: Promotion,
     user: Optional[User],
     app: Optional[App],
     rules: List[PromotionRule],
 ):
     return _rule_base_event(
-        promotion=promotion,
         user=user,
         app=app,
         rules=rules,
@@ -74,13 +71,11 @@ def rule_created_event(
 
 
 def rule_updated_event(
-    promotion: Promotion,
     user: Optional[User],
     app: Optional[App],
     rules: List[PromotionRule],
 ):
     return _rule_base_event(
-        promotion=promotion,
         user=user,
         app=app,
         rules=rules,
@@ -89,13 +84,11 @@ def rule_updated_event(
 
 
 def rule_deleted_event(
-    promotion: Promotion,
     user: Optional[User],
     app: Optional[App],
     rules: List[PromotionRule],
 ):
     return _rule_base_event(
-        promotion=promotion,
         user=user,
         app=app,
         rules=rules,

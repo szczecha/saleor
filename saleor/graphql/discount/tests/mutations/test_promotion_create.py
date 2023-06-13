@@ -919,8 +919,13 @@ PROMOTION_CREATE_WITH_EVENTS = """
                 id
                 events {
                     type
-                    user {
-                        id
+                    createdBy {
+                        ... on User {
+                            id
+                        }
+                        ... on App {
+                            id
+                        }
                     }
                     ruleId
                 }
@@ -939,15 +944,15 @@ PROMOTION_CREATE_WITH_EVENTS = """
 """
 
 
-def test_promotion_create_events(
+def test_promotion_create_events_by_staff_user(
     staff_api_client,
-    permission_group_manage_discounts,
+    permission_manage_discounts,
+    permission_manage_staff,
     channel_USD,
     channel_PLN,
     variant,
 ):
     # given
-    permission_group_manage_discounts.user_set.add(staff_api_client.user)
     rule_1_channel_ids = [graphene.Node.to_global_id("Channel", channel_USD.pk)]
     rule_2_channel_ids = [graphene.Node.to_global_id("Channel", channel_PLN.pk)]
     catalogue_predicate = {
@@ -982,7 +987,11 @@ def test_promotion_create_events(
     event_count = PromotionEvent.objects.count()
 
     # when
-    response = staff_api_client.post_graphql(PROMOTION_CREATE_WITH_EVENTS, variables)
+    response = staff_api_client.post_graphql(
+        PROMOTION_CREATE_WITH_EVENTS,
+        variables,
+        permissions=[permission_manage_discounts, permission_manage_staff],
+    )
 
     # then
     content = get_graphql_content(response)
@@ -996,10 +1005,82 @@ def test_promotion_create_events(
     assert PromotionEvents.PROMOTION_CREATED.upper() in event_types
     assert PromotionEvents.RULE_CREATED.upper() in event_types
 
-    users = list({event["user"]["id"] for event in events})
+    users = list({event["createdBy"]["id"] for event in events})
     user_id = graphene.Node.to_global_id("User", staff_api_client.user.id)
     assert len(users) == 1
     assert users[0] == user_id
+
+    rule_ids = [event["ruleId"] for event in events]
+    rules = data["promotion"]["rules"]
+    for rule in rules:
+        assert rule["id"] in rule_ids
+
+
+def test_promotion_create_events_by_app(
+    app_api_client,
+    permission_manage_discounts,
+    permission_manage_apps,
+    channel_USD,
+    channel_PLN,
+    variant,
+):
+    # given
+    rule_1_channel_ids = [graphene.Node.to_global_id("Channel", channel_USD.pk)]
+    rule_2_channel_ids = [graphene.Node.to_global_id("Channel", channel_PLN.pk)]
+    catalogue_predicate = {
+        "OR": [
+            {
+                "variantPredicate": {
+                    "ids": [graphene.Node.to_global_id("ProductVariant", variant.id)]
+                }
+            },
+        ]
+    }
+
+    variables = {
+        "input": {
+            "name": "test promotion",
+            "rules": [
+                {
+                    "channels": rule_1_channel_ids,
+                    "cataloguePredicate": catalogue_predicate,
+                    "rewardValueType": RewardValueTypeEnum.FIXED.name,
+                    "rewardValue": Decimal("1"),
+                },
+                {
+                    "channels": rule_2_channel_ids,
+                    "cataloguePredicate": catalogue_predicate,
+                    "rewardValueType": RewardValueTypeEnum.FIXED.name,
+                    "rewardValue": Decimal("1"),
+                },
+            ],
+        }
+    }
+    event_count = PromotionEvent.objects.count()
+
+    # when
+    response = app_api_client.post_graphql(
+        PROMOTION_CREATE_WITH_EVENTS,
+        variables,
+        permissions=[permission_manage_discounts, permission_manage_apps],
+    )
+
+    # then
+    content = get_graphql_content(response)
+    data = content["data"]["promotionCreate"]
+    assert not data["errors"]
+
+    events = data["promotion"]["events"]
+    event_types = {event["type"] for event in events}
+    assert len(events) == 3
+    assert PromotionEvent.objects.count() == event_count + 3
+    assert PromotionEvents.PROMOTION_CREATED.upper() in event_types
+    assert PromotionEvents.RULE_CREATED.upper() in event_types
+
+    apps = list({event["createdBy"]["id"] for event in events})
+    app_id = graphene.Node.to_global_id("App", app_api_client.app.id)
+    assert len(apps) == 1
+    assert apps[0] == app_id
 
     rule_ids = [event["ruleId"] for event in events]
     rules = data["promotion"]["rules"]
